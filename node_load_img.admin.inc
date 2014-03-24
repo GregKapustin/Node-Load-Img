@@ -14,7 +14,7 @@ function node_load_img_admin_settings() {
     $form = array();
     $styles_form= array();
     foreach($styles as $style) {
-        $styles_form[$style['name']] = $style['label'];
+        $styles_form[$style['name']] = isset($style['label']) ? $style['label'] : $style['name'];
     }
     
     $hidden = array();
