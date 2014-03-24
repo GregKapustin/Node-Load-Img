@@ -1,0 +1,86 @@
+<?php
+
+/**
+ * Implements hook_menu
+ */
+function node_load_img_menu() {
+    $items = array();
+    
+    // main configuration page of the basic Node Load Img module
+    $items['admin/config/media/node_load_img'] = array(
+        'title' => 'Node Load Images configuration',
+        'description' => 'Administer for which fields on which content types styled images urls are added on node load.',
+        'file' => 'node_load_img.admin.inc',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('node_load_img_admin_settings'),
+        'access arguments' => array('administer Node Load Img settings'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+    
+    return $items;
+}
+
+/**
+ * Implementation of hook_permission().
+ */
+function node_load_img_permission() {
+  return array(
+    'administer Node Load Img settings' => array(
+      'title' => t('Administer Node Load Img settings'),
+    )
+  );
+}
+
+
+/**
+ * That function gives urls to images formatted with the $formats array directly in loaded $entities for image $fields fields.
+ * 
+ * Don't try to save entities returned by that function.
+ * 
+ * @param array $entities
+ * @param array $fields
+ * @param array $formats
+ * @return array
+ */
+function _node_load_img_preprocess_images($entities = array(), $fields = array(), $formats = array()) {
+    if(empty($entities) || empty($fields) || empty($formats))
+        return $entities;
+    
+    foreach($entities as $d => $e) {
+        foreach($fields as $field) {
+            if(isset($e->{$field}) && !empty($e->{$field})) {
+                $field_language = array_keys($e->{$field});
+                $field_language = $field_language[0];
+                if(!empty($e->{$field}[$field_language])) {
+                    foreach($e->{$field}[$field_language] as $d_img => $img) {
+                        foreach($formats as $format) {
+                            $e->{$field}[$field_language][$d_img]['img_urls'][$format] = image_style_url($format, $img['uri']);
+                        }
+                    }
+                }
+            }
+        }
+        $entities[$d] = $e;
+    }
+    return $entities;
+}
+
+/**
+ * Implements hook_node_load.
+ * For each entity, for each node, add image url in 'img_urls' array.
+ * See config.
+ * 
+ * @param array $nodes
+ */
+function node_load_img_node_load($nodes) {
+    $types = variable_get('node_load_img');
+    foreach($nodes as $d => $node) {
+        if(isset($types[$node->type]) && !empty($types[$node->type])) {
+            $fields = variable_get('node_load_img_' . $node->type);
+            foreach($fields as $field => $formats) {
+                $nodes[$d] = _node_load_img_preprocess_images(array($node), array($field), $formats);
+            }
+        }
+    }
+    return $nodes;
+}
