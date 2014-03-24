@@ -24,6 +24,8 @@ function node_load_img_admin_settings() {
         $form['node_load_img_' . $type->type] = array(
             '#type' => 'fieldset',
             '#title' => $type->name,
+            '#collapsible' => TRUE,
+            '#collapsed' => 'collapsed'
         );
         $fields = field_info_instances('node', $type->type);
         foreach($fields as $field) {
